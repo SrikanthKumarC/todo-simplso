@@ -22,7 +22,6 @@ const DialogBoxContent = ({ children }: DialogBoxProps) => {
     <Dialog.Content id="todo_content">
       <Dialog.Title>Edit Todo</Dialog.Title>
       <Dialog.Description>{children}</Dialog.Description>
-     
     </Dialog.Content>
   );
 };

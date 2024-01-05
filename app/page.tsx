@@ -5,8 +5,6 @@ import React from "react";
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
-  PointerSensor,
   MouseSensor,
   useSensor,
   useSensors,
@@ -55,8 +53,7 @@ export default function Home() {
     setTodos(newTodos);
   };
 
-  const keyboardSensor = useSensor(KeyboardSensor);
-  const sensors = useSensors(mouseSensor, keyboardSensor, touchSensor);
+  const sensors = useSensors(mouseSensor, touchSensor);
 
   function handleDragEnd(event: any) {
     const { active, over } = event;
@@ -140,14 +137,15 @@ export default function Home() {
         >
           <SortableContext items={todos} strategy={verticalListSortingStrategy}>
             {todos.map((todo) => (
-              <div key={todo.id}>
+
                 <TodoItem
                   todo={todo}
+                  key={todo.id}
                   handleEdit={handleEdit}
                   handleRemove={handleRemove}
                   handleComplete={handleComplete}
                 />
-              </div>
+
             ))}
           </SortableContext>
         </DndContext>
