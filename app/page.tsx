@@ -1,113 +1,158 @@
-import Image from 'next/image'
+"use client";
+
+import { TextField, Text } from "@radix-ui/themes";
+import React from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  MouseSensor,
+  useSensor,
+  useSensors,
+  TouchSensor,
+} from "@dnd-kit/core";
+
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import TodoItem from "@/components/Todo";
+import NoSSRWrapper from "@/components/NoSSRWrapper";
+interface Todo {
+  id: number;
+  text: string;
+  completed: boolean;
+}
+import { useSessionStorage } from "usehooks-ts";
 
 export default function Home() {
+  const [todos, setTodos] = useSessionStorage("todo-app", [] as Todo[]);
+
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 10, // Enable sort function when dragging 10px   💡 here!!!
+    },
+  });
+  const touchSensor = useSensor(TouchSensor, {
+    // Press delay of 250ms, with tolerance of 5px of movement
+    activationConstraint: {
+      delay: 250,
+      tolerance: 5,
+    },
+  });
+
+  const handleComplete = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const todoIdToComplete = parseInt(e.currentTarget.id);
+    const newTodos = todos.map((todo) => {
+      if (todo.id === todoIdToComplete) {
+        return { ...todo, completed: !todo.completed };
+      }
+      return todo;
+    });
+    setTodos(newTodos);
+  };
+
+  const keyboardSensor = useSensor(KeyboardSensor);
+  const sensors = useSensors(mouseSensor, keyboardSensor, touchSensor);
+
+  function handleDragEnd(event: any) {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      setTodos((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  }
+  // const reverseTodos = todos.sort((a, b) => (b.id > a.id ? 1 : -1));
+  console.log(todos);
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    if (!e.target[0].value) return;
+    const newTodo = {
+      id: new Date().getTime(),
+      text: e.target[0].value,
+      completed: false,
+    };
+    setTodos([...todos, newTodo]);
+    e.target[0].value = "";
+  };
+  const handleRemove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("Remove button clicked", e.currentTarget.id);
+    const todoIdToRemove = parseInt(e.currentTarget.id, 10);
+    const newTodos = todos.filter((todo) => todo.id !== todoIdToRemove);
+    setTodos(newTodos);
+  };
+
+  const handleEdit = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    editedText: string
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!editedText || editedText == "") return;
+    const todoIdToEdit = parseInt(e.currentTarget.id, 10);
+    const newTodos = todos.map((todo) => {
+      if (todo.id === todoIdToEdit) {
+        return { ...todo, text: editedText };
+      }
+      return todo;
+    });
+    setTodos(newTodos);
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
+    <NoSSRWrapper>
+    <main className="mx-auto p-4 " suppressHydrationWarning>
+      <Text className="text-center w-full block text-3xl">Todo</Text>
+      {todos.length > 0 && (
+        <span className="text-center w-full block text-red-600 font-bold">
+          Drag to re-order
+        </span>
+      )}
+      <form
+        className="flex px-4 sm:px-0 items-center max-w-xl mt-4 gap-2 mx-auto"
+        onSubmit={handleSubmit}
+      >
+        <TextField.Root className="w-full">
+          <TextField.Input
+            className="block shrink-0 w-full "
+            size={"3"}
+            placeholder="Buy Potatoes"
+          />
+        </TextField.Root>
+        <button className="bg-blue-500 hover:bg-blue-800 duration-100 text-white px-6 flex pb-1 rounded-md text-3xl">
+          <span className="">+</span>
+        </button>
+      </form>
+      <div className="max-w-[calc(36rem+2rem)] mx-auto">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
         >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+          <SortableContext items={todos} strategy={verticalListSortingStrategy}>
+            {todos.map((todo) => (
+              <div key={todo.id}>
+                <TodoItem
+                  todo={todo}
+                  handleEdit={handleEdit}
+                  handleRemove={handleRemove}
+                  handleComplete={handleComplete}
+                />
+              </div>
+            ))}
+          </SortableContext>
+        </DndContext>
       </div>
     </main>
-  )
+    </NoSSRWrapper>
+  );
 }
